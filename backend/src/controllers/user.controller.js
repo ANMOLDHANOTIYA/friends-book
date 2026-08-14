@@ -1,4 +1,5 @@
 import { User } from "../models/user.model.js";
+import ApiError from "../utils/ApiError.js";
 
 const registerUser = async (req, res) => {
 
@@ -15,22 +16,12 @@ const registerUser = async (req, res) => {
     });
 
     if (existingUser) {
-        return res.status(409).json({
-            message: "User already exists"
-        });
+        throw new ApiError(
+            409,
+            "Username or email already exists"
+        );
     }
 
-    // const user = await User.create({
-    //     username,
-    //     email,
-    //     password,
-    //     fullName
-    // });
-
-    // return res.status(201).json({
-    //     message: "User registered successfully",
-    //     user
-    // });
 
     const user = await User.create({
         username,
