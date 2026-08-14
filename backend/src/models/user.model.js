@@ -19,6 +19,7 @@ const userSchema = new moongoose.Schema({
     },
     password: {
         type: String,
+        select: false,
         required: true,
         minlength: 6,
     },

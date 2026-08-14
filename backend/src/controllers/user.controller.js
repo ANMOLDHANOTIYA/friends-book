@@ -20,6 +20,18 @@ const registerUser = async (req, res) => {
         });
     }
 
+    // const user = await User.create({
+    //     username,
+    //     email,
+    //     password,
+    //     fullName
+    // });
+
+    // return res.status(201).json({
+    //     message: "User registered successfully",
+    //     user
+    // });
+
     const user = await User.create({
         username,
         email,
@@ -27,9 +39,13 @@ const registerUser = async (req, res) => {
         fullName
     });
 
+    const createdUser = await User
+        .findById(user._id)
+        .select("-password");
+
     return res.status(201).json({
         message: "User registered successfully",
-        user
+        user: createdUser
     });
 };
 
