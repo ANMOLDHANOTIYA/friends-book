@@ -1,14 +1,13 @@
 import { User } from "../models/user.model.js";
 import ApiError from "../utils/ApiError.js";
+import bcrypt from "bcrypt";
 
 const registerUser = async (req, res) => {
 
     const { username, email, password, fullName } = req.body;
 
     if (!username || !email || !password || !fullName) {
-        return res.status(400).json({
-            message: "All fields are required"
-        });
+        throw new ApiError(400, "All fields are required");
     }
 
     const existingUser = await User.findOne({
@@ -40,6 +39,34 @@ const registerUser = async (req, res) => {
     });
 };
 
+const loginUser = async (req, res) => {
+
+    const { email, password } = req.body;
+
+    const user = await User
+        .findOne({ email })
+        .select("+password");
+
+    if (!user) {
+        throw new ApiError(401, "Invalid email or password");
+    }
+
+    const isPasswordCorrect = await bcrypt.compare(
+        password,
+        user.password
+    );
+
+    if (!isPasswordCorrect) {
+        throw new ApiError(401, "Invalid email or password");
+    }
+
+    return res.status(200).json({
+        success: true,
+        message: "User logged in successfully"
+    });
+};
+
 export {
-    registerUser
+    registerUser,
+    loginUser
 };
