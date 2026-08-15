@@ -2,6 +2,9 @@ import { User } from "../models/user.model.js";
 import ApiError from "../utils/ApiError.js";
 import bcrypt from "bcrypt";
 import { generateAccessToken, generateRefreshToken } from "../utils/generateTokens.js";
+import { Session } from "../models/session.model.js";
+import crypto from "crypto";
+import jwt from "jsonwebtoken";
 
 const registerUser = async (req, res) => {
 
@@ -64,6 +67,20 @@ const loginUser = async (req, res) => {
     const accessToken = generateAccessToken(user._id);
     const refreshToken = generateRefreshToken(user._id);
 
+    const refreshTokenHash = crypto
+        .createHash("sha256")
+        .update(refreshToken)
+        .digest("hex");
+
+    const decodedRefreshToken = jwt.decode(refreshToken);
+
+    const session = await Session.create({
+        user: user._id,
+        refreshTokenHash,
+        tokenId: decodedRefreshToken.jti,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    });
+
     res.cookie("accessToken", accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
@@ -92,8 +109,122 @@ const getCurrentUser = async (req, res) => {
     });
 };
 
+const refreshAccessToken = async (req, res) => {
+
+    const incomingRefreshToken = req.cookies?.refreshToken;
+
+    if (!incomingRefreshToken) {
+        throw new ApiError(401, "Refresh token is required");
+    }
+
+    const decodedToken = jwt.verify(
+        incomingRefreshToken,
+        process.env.REFRESH_TOKEN_SECRET
+    );
+
+    const refreshTokenHash = crypto
+        .createHash("sha256")
+        .update(incomingRefreshToken)
+        .digest("hex");
+
+    const session = await Session
+        .findOne({ refreshTokenHash })
+        .select("+refreshTokenHash");
+
+    if (!session) {
+        throw new ApiError(401, "Invalid refresh token");
+    }
+
+    if (session.expiresAt < new Date()) {
+        await Session.findByIdAndDelete(session._id);
+
+        throw new ApiError(401, "Refresh token expired");
+    }
+
+    const user = await User.findById(decodedToken.userId);
+
+    if (!user) {
+        await Session.findByIdAndDelete(session._id);
+
+        throw new ApiError(401, "Invalid refresh token");
+    }
+
+    const newAccessToken = generateAccessToken(user._id);
+    const newRefreshToken = generateRefreshToken(user._id);
+
+    const newRefreshTokenHash = crypto
+        .createHash("sha256")
+        .update(newRefreshToken)
+        .digest("hex");
+
+    session.refreshTokenHash = newRefreshTokenHash;
+    session.expiresAt = new Date(
+        Date.now() + 7 * 24 * 60 * 60 * 1000
+    );
+
+    await session.save();
+
+    res.cookie("accessToken", newAccessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 15 * 60 * 1000
+    });
+
+    res.cookie("refreshToken", newRefreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    return res.status(200).json({
+        success: true,
+        message: "Access token refreshed successfully"
+    });
+};
+
+const logoutUser = async (req, res) => {
+    const refreshToken = req.cookies?.refreshToken;
+
+    if (refreshToken) {
+        const refreshTokenHash = crypto
+            .createHash("sha256")
+            .update(refreshToken)
+            .digest("hex");
+
+        await Session.findOneAndDelete({
+            refreshTokenHash
+        });
+    }
+
+    res.clearCookie("accessToken", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict"
+    });
+
+    res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict"
+    });
+
+    return res.status(200).json({
+        success: true,
+        message: "User logged out successfully"
+    });
+};
+
+
+
+
+
+
 export {
     registerUser,
-    loginUser, 
-    getCurrentUser
+    loginUser,
+    getCurrentUser,
+    refreshAccessToken,
+    logoutUser
 };
