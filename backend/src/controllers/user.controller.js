@@ -103,9 +103,17 @@ const loginUser = async (req, res) => {
 
 const getCurrentUser = async (req, res) => {
 
+    const user = await User
+        .findById(req.user._id)
+        .select("-password");
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
     return res.status(200).json({
         success: true,
-        user: req.user
+        user
     });
 };
 
@@ -216,7 +224,36 @@ const logoutUser = async (req, res) => {
     });
 };
 
+const updateProfile = async (req, res) => {
 
+    const { fullName, bio } = req.body;
+
+    const user = await User
+        .findByIdAndUpdate(
+            req.user._id,
+            {
+                $set: {
+                    ...(fullName !== undefined && { fullName }),
+                    ...(bio !== undefined && { bio })
+                }
+            },
+            {
+                new: true,
+                runValidators: true
+            }
+        )
+        .select("-password");
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    return res.status(200).json({
+        success: true,
+        message: "Profile updated successfully",
+        user
+    });
+};
 
 
 
@@ -226,5 +263,6 @@ export {
     loginUser,
     getCurrentUser,
     refreshAccessToken,
-    logoutUser
+    logoutUser,
+    updateProfile
 };

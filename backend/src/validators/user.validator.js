@@ -39,7 +39,24 @@ const loginUserSchema = z.strictObject({
         .max(25, "Password cannot exceed 100 characters")
 });
 
+const updateProfileSchema = z.strictObject({
+    fullName: z
+        .string()
+        .trim()
+        .min(2, "Full name must be at least 2 characters")
+        .max(50, "Full name cannot exceed 50 characters")
+        .optional(),
+
+    bio: z
+        .string()
+        .trim()
+        .max(300, "Bio cannot exceed 300 characters")
+        .optional()
+});
+
 export {
     registerUserSchema,
-    loginUserSchema
+    loginUserSchema,
+    updateProfileSchema
 };
+
