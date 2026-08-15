@@ -1,6 +1,7 @@
 import { User } from "../models/user.model.js";
 import ApiError from "../utils/ApiError.js";
 import bcrypt from "bcrypt";
+import { generateAccessToken, generateRefreshToken } from "../utils/generateTokens.js";
 
 const registerUser = async (req, res) => {
 
@@ -60,13 +61,39 @@ const loginUser = async (req, res) => {
         throw new ApiError(401, "Invalid email or password");
     }
 
+    const accessToken = generateAccessToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
+
+    res.cookie("accessToken", accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 15 * 60 * 1000
+    });
+
+    res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
     return res.status(200).json({
         success: true,
         message: "User logged in successfully"
     });
 };
 
+const getCurrentUser = async (req, res) => {
+
+    return res.status(200).json({
+        success: true,
+        user: req.user
+    });
+};
+
 export {
     registerUser,
-    loginUser
+    loginUser, 
+    getCurrentUser
 };
