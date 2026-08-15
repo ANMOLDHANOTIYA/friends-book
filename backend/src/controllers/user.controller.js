@@ -5,6 +5,7 @@ import { generateAccessToken, generateRefreshToken } from "../utils/generateToke
 import { Session } from "../models/session.model.js";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
+import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 const registerUser = async (req, res) => {
 
@@ -228,14 +229,32 @@ const updateProfile = async (req, res) => {
 
     const { fullName, bio } = req.body;
 
+    const updateData = {
+        ...(fullName !== undefined && { fullName }),
+        ...(bio !== undefined && { bio })
+    };
+
+    if (req.file) {
+
+        const avatarLocalPath = req.file.path;
+
+        const avatar = await uploadOnCloudinary(avatarLocalPath);
+
+        if (!avatar) {
+            throw new ApiError(
+                400,
+                "Error while uploading avatar"
+            );
+        }
+
+        updateData.avatar = avatar.url;
+    }
+
     const user = await User
         .findByIdAndUpdate(
             req.user._id,
             {
-                $set: {
-                    ...(fullName !== undefined && { fullName }),
-                    ...(bio !== undefined && { bio })
-                }
+                $set: updateData
             },
             {
                 new: true,
@@ -255,8 +274,64 @@ const updateProfile = async (req, res) => {
     });
 };
 
+const changeCurrentPassword = async (req, res) => {
 
+    const { oldPassword, newPassword } = req.body;
 
+    if (!oldPassword || !newPassword) {
+        throw new ApiError(
+            400,
+            "Old password and new password are required"
+        );
+    }
+
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    const isPasswordCorrect =
+        await user.isPasswordCorrect(oldPassword);
+
+    if (!isPasswordCorrect) {
+        throw new ApiError(400, "Invalid old password");
+    }
+
+    user.password = newPassword;
+
+    await user.save();
+
+    return res.status(200).json({
+        success: true,
+        message: "Password changed successfully"
+    });
+};
+
+const getUserProfile = async (req, res) => {
+
+    const { username } = req.params;
+
+    if (!username?.trim()) {
+        throw new ApiError(400, "Username is required");
+    }
+
+    const user = await User
+        .findOne({
+            username: username.toLowerCase()
+        })
+        .select("-password -refreshToken");
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    return res.status(200).json({
+        success: true,
+        message: "User profile fetched successfully",
+        user
+    });
+};
 
 export {
     registerUser,
@@ -264,5 +339,8 @@ export {
     getCurrentUser,
     refreshAccessToken,
     logoutUser,
-    updateProfile
+    updateProfile,
+    changeCurrentPassword,
+    getUserProfile
 };
+    

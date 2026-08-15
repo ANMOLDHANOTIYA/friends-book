@@ -54,9 +54,41 @@ const updateProfileSchema = z.strictObject({
         .optional()
 });
 
+const changeCurrentPasswordSchema = z.object({
+    oldPassword: z
+        .string()
+        .min(1, "Old password is required"),
+
+    newPassword: z
+        .string()
+        .min(6, "New password must be at least 8 characters")
+});
+
+const createPostSchema = z.object({
+    content: z
+        .string()
+        .trim()
+        .min(1, "Post content is required")
+        .max(5000, "Post content cannot exceed 5000 characters")
+});
+
+const createCommentSchema = z.object({
+    content: z
+        .string()
+        .trim()
+        .min(1, "Comment cannot be empty")
+        .max(1000, "Comment cannot exceed 1000 characters")
+});
+
 export {
     registerUserSchema,
     loginUserSchema,
-    updateProfileSchema
+    updateProfileSchema,
+    changeCurrentPasswordSchema,
+    createPostSchema,
+    createCommentSchema
 };
+
+    
+
 

@@ -1,7 +1,11 @@
 // how should errors are send to the client, this is the last middleware in the chain of middlewares,
 //  so it will catch any error that was thrown in the previous middlewares or route handlers
 
+
+
 const errorHandler = (err, req, res, next) => {
+
+    console.error(err.stack);
 
     const statusCode = err.statusCode || 500;
 
