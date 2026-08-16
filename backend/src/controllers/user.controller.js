@@ -333,6 +333,44 @@ const getUserProfile = async (req, res) => {
     });
 };
 
+const searchUsers = async (req, res) => {
+
+    const { query } = req.query;
+
+    if (!query || query.trim() === "") {
+        return res.status(200).json({
+            success: true,
+            message: "Search query is empty",
+            users: []
+        });
+    }
+
+    const users = await User.find({
+        $or: [
+            {
+                username: {
+                    $regex: query,
+                    $options: "i"
+                }
+            },
+            {
+                fullName: {
+                    $regex: query,
+                    $options: "i"
+                }
+            }
+        ]
+    })
+        .select("username fullName avatar")
+        .limit(10);
+
+    return res.status(200).json({
+        success: true,
+        message: "Users searched successfully",
+        users
+    });
+};
+
 export {
     registerUser,
     loginUser,
@@ -341,6 +379,7 @@ export {
     logoutUser,
     updateProfile,
     changeCurrentPassword,
-    getUserProfile
+    getUserProfile,
+    searchUsers,
 };
     

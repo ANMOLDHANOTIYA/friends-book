@@ -58,6 +58,7 @@ const markNotificationAsRead = async (req, res) => {
     });
 };
 
+
 export {
     getNotifications,
     markNotificationAsRead

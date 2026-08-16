@@ -74,6 +74,144 @@ const getAllPosts = async (req, res) => {
     });
 };
 
+const getFeed = async (req, res) => {
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+
+    const posts = Post.aggregate([
+        {
+            $lookup: {
+                from: "users",
+                localField: "author",
+                foreignField: "_id",
+                as: "author"
+            }
+        },
+
+        {
+            $unwind: "$author"
+        },
+
+        {
+            $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "post",
+                as: "likes"
+            }
+        },
+
+        {
+            $addFields: {
+                likeCount: {
+                    $size: "$likes"
+                }
+            }
+        },
+
+        {
+            $lookup: {
+                from: "comments",
+                localField: "_id",
+                foreignField: "post",
+                as: "comments"
+            }
+        },
+
+        {
+            $addFields: {
+                commentCount: {
+                    $size: "$comments"
+                }
+            }
+        },
+
+        {
+            $lookup: {
+                from: "likes",
+                let: {
+                    postId: "$_id"
+                },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {
+                                $and: [
+                                    {
+                                        $eq: ["$post", "$$postId"]
+                                    },
+                                    {
+                                        $eq: ["$user", req.user._id]
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                ],
+                as: "currentUserLike"
+            }
+        },
+
+        {
+            $addFields: {
+                isLiked: {
+                    $gt: [
+                        { $size: "$currentUserLike" },
+                        0
+                    ]
+                }
+            }
+        },
+
+        {
+            $project: {
+                content: 1,
+                image: 1,
+                createdAt: 1,
+                author: {
+                    _id: 1,
+                    username: 1,
+                    fullName: 1,
+                    avatar: 1
+                },
+                likeCount: 1,
+                commentCount: 1,
+                isLiked: 1
+            }
+        },
+
+        {
+            $sort: {
+                createdAt: -1
+            }
+        }
+    ]);
+
+    const result = await Post.aggregatePaginate(
+        posts,
+        {
+            page,
+            limit
+        }
+    );
+
+    return res.status(200).json({
+        success: true,
+        message: "Feed fetched successfully",
+        posts: result.docs,
+        pagination: {
+            totalDocs: result.totalDocs,
+            limit: result.limit,
+            page: result.page,
+            totalPages: result.totalPages,
+            hasNextPage: result.hasNextPage,
+            hasPrevPage: result.hasPrevPage
+        }
+    });
+};
+
 const getUserPosts = async (req, res) => {
     const { username } = req.params;
 
@@ -170,5 +308,6 @@ export {
     getAllPosts,
     getUserPosts,
     updatePost,
-    deletePost
+    deletePost,
+    getFeed
 };
