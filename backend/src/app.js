@@ -7,9 +7,11 @@ import notificationRouter from "./routes/notification.route.js";
 import postRouter from "./routes/post.routes.js";
 import likeRouter from "./routes/like.routes.js";
 import commentRouter from "./routes/comment.route.js";
+import cors from "cors";
 
 const app = express();
 
+app.use(cors({ origin: "http://localhost:5174", credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
