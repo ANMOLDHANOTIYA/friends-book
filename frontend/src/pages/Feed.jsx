@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
 import { Search, Bell, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+
 import api from "../services/api";
 import PostCard from "../components/post/PostCard";
 import CreatePost from "../components/post/CreatePost";
 
 function Feed() {
+  const navigate = useNavigate();
+
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,7 +29,9 @@ function Feed() {
 
       setPosts(response.data.posts);
     } catch (error) {
-      console.error(error.response?.data || error);
+      console.error(
+        error.response?.data || error
+      );
     } finally {
       setLoading(false);
     }
@@ -46,22 +52,28 @@ function Feed() {
       try {
         setSearchLoading(true);
 
-        const response = await api.get("/users/search", {
-          params: {
-            query: searchQuery,
-          },
-        });
+        const response = await api.get(
+          "/users/search",
+          {
+            params: {
+              query: searchQuery,
+            },
+          }
+        );
 
         setUsers(response.data.users || []);
       } catch (error) {
-        console.error(error.response?.data || error);
+        console.error(
+          error.response?.data || error
+        );
+
         setUsers([]);
       } finally {
         setSearchLoading(false);
       }
     };
 
-    // Small debounce so we don't call API on every keystroke
+    // Debounce search
     const timer = setTimeout(() => {
       searchUsers();
     }, 300);
@@ -88,6 +100,7 @@ function Feed() {
 
       {/* Navbar */}
       <header className="sticky top-0 z-50 border-b border-white/10 bg-[#09090b]/80 backdrop-blur-xl">
+
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
 
           {/* Logo */}
@@ -116,7 +129,9 @@ function Feed() {
                     autoFocus
                     value={searchQuery}
                     onChange={(e) =>
-                      setSearchQuery(e.target.value)
+                      setSearchQuery(
+                        e.target.value
+                      )
                     }
                     placeholder="Search people..."
                     className="w-48 bg-transparent text-sm text-white outline-none placeholder:text-zinc-500"
@@ -132,7 +147,9 @@ function Feed() {
                 </div>
 
                 {/* Search results */}
-                {(searchQuery.trim() || searchLoading) && (
+                {(searchQuery.trim() ||
+                  searchLoading) && (
+
                   <div className="absolute right-0 top-14 w-80 overflow-hidden rounded-2xl border border-white/10 bg-[#121216] shadow-2xl shadow-black/40">
 
                     {searchLoading && (
@@ -144,58 +161,84 @@ function Feed() {
                     {!searchLoading &&
                       searchQuery.trim() &&
                       users.length === 0 && (
+
                         <div className="px-4 py-5 text-center text-sm text-zinc-500">
                           No users found
                         </div>
+
                       )}
 
-                    {!searchLoading && users.length > 0 && (
-                      <div className="py-2">
+                    {!searchLoading &&
+                      users.length > 0 && (
 
-                        {users.map((user) => (
-                          <button
-                            key={user._id}
-                            className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-white/5"
-                          >
-                            <img
-                              src={
-                                user.avatar ||
-                                "/avatar.png"
-                              }
-                              alt={user.username}
-                              className="h-10 w-10 rounded-full border border-white/10 object-cover"
-                            />
+                        <div className="py-2">
 
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-semibold text-white">
-                                {user.fullName}
-                              </p>
+                          {users.map((user) => (
 
-                              <p className="truncate text-xs text-zinc-500">
-                                @{user.username}
-                              </p>
-                            </div>
-                          </button>
-                        ))}
+                            <button
+                              key={user._id}
+                              onClick={() => {
+                                navigate(
+                                  `/profile/${user.username}`
+                                );
 
-                      </div>
-                    )}
+                                closeSearch();
+                              }}
+                              className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-white/5"
+                            >
+
+                              <img
+                                src={
+                                  user.avatar ||
+                                  "/avatar.png"
+                                }
+                                alt={user.username}
+                                className="h-10 w-10 rounded-full border border-white/10 object-cover"
+                              />
+
+                              <div className="min-w-0">
+
+                                <p className="truncate text-sm font-semibold text-white">
+                                  {user.fullName}
+                                </p>
+
+                                <p className="truncate text-xs text-zinc-500">
+                                  @{user.username}
+                                </p>
+
+                              </div>
+
+                            </button>
+
+                          ))}
+
+                        </div>
+
+                      )}
 
                   </div>
+
                 )}
 
               </div>
             ) : (
+
               <button
-                onClick={() => setSearchOpen(true)}
+                onClick={() =>
+                  setSearchOpen(true)
+                }
                 className="rounded-xl p-2 text-zinc-400 transition hover:bg-white/5 hover:text-white"
               >
                 <Search size={20} />
               </button>
+
             )}
 
             {/* Notifications */}
             <button
+              onClick={() =>
+                navigate("/notifications")
+              }
               className="rounded-xl p-2 text-zinc-400 transition hover:bg-white/5 hover:text-white"
             >
               <Bell size={20} />
@@ -209,6 +252,7 @@ function Feed() {
           </div>
 
         </div>
+
       </header>
 
       {/* Main */}
@@ -216,6 +260,7 @@ function Feed() {
 
         {/* Left sidebar */}
         <aside className="col-span-3 hidden lg:block">
+
           <nav className="sticky top-24 space-y-2">
 
             {[
@@ -225,8 +270,18 @@ function Feed() {
               "Notifications",
               "Saved",
             ].map((item, index) => (
+
               <button
                 key={item}
+                onClick={() => {
+                  if (item === "Home") {
+                    navigate("/feed");
+                  }
+
+                  if (item === "Notifications") {
+                    navigate("/notifications");
+                  }
+                }}
                 className={`w-full rounded-xl px-4 py-3 text-left transition ${
                   index === 0
                     ? "bg-indigo-500/10 text-indigo-400"
@@ -235,9 +290,11 @@ function Feed() {
               >
                 {item}
               </button>
+
             ))}
 
           </nav>
+
         </aside>
 
         {/* Feed */}
@@ -245,6 +302,7 @@ function Feed() {
 
           {/* Heading */}
           <div className="mb-6">
+
             <h2 className="text-2xl font-bold">
               Home
             </h2>
@@ -252,6 +310,7 @@ function Feed() {
             <p className="mt-1 text-sm text-zinc-500">
               See what's happening with your friends.
             </p>
+
           </div>
 
           {/* Create post */}
@@ -266,12 +325,16 @@ function Feed() {
 
           {/* Posts */}
           <div className="mt-6 space-y-5">
+
             {posts.map((post) => (
+
               <PostCard
                 key={post._id}
                 post={post}
               />
+
             ))}
+
           </div>
 
         </section>
@@ -294,6 +357,7 @@ function Feed() {
         </aside>
 
       </main>
+
     </div>
   );
 }

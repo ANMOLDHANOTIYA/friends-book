@@ -17,33 +17,45 @@ function Login() {
   } = useForm();
 
   const { fetchCurrentUser } = useAuth();
-
   const navigate = useNavigate();
 
   const onSubmit = async (data) => {
-  try {
-    const response = await api.post(
-      "/users/login",
-      data
-    );
+    try {
 
-    console.log(response.data);
+      // Login
+      await api.post(
+        "/users/login",
+        data
+      );
 
-    // Get logged-in user and update AuthContext
-    await fetchCurrentUser();
+      // Get logged-in user
+      const currentUser =
+        await fetchCurrentUser();
 
-    // Now go to feed
-    navigate("/feed");
+      // Make sure authentication actually worked
+      if (!currentUser) {
+        console.error(
+          "Login succeeded but current user could not be fetched."
+        );
+        return;
+      }
 
-  } catch (error) {
-    console.log(
-      error.response?.data || error.message
-    );
-  }
-};
+      // Go to feed
+      navigate("/feed");
+
+    } catch (error) {
+
+      console.error(
+        error.response?.data ||
+        error.message
+      );
+
+    }
+  };
 
   return (
     <main className="min-h-screen bg-[#0b0d10] px-4 py-8">
+
       <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-md items-center justify-center">
 
         <div className="w-full">
@@ -55,6 +67,7 @@ function Login() {
           <div className="rounded-2xl border border-white/10 bg-[#12161c] p-6 shadow-2xl shadow-black/20 sm:p-8">
 
             <div className="mb-8">
+
               <h1 className="text-2xl font-bold tracking-tight text-white">
                 Welcome back
               </h1>
@@ -62,12 +75,14 @@ function Login() {
               <p className="mt-2 text-sm text-slate-400">
                 Sign in to continue to FriendsBook.
               </p>
+
             </div>
 
             <form
               onSubmit={handleSubmit(onSubmit)}
               className="space-y-5"
             >
+
               <Input
                 label="Email"
                 type="email"
@@ -77,6 +92,7 @@ function Login() {
                 })}
                 error={errors.email?.message}
               />
+
               <Input
                 label="Password"
                 type="password"
@@ -86,6 +102,7 @@ function Login() {
                 })}
                 error={errors.password?.message}
               />
+
               <Button
                 type="submit"
                 className="w-full"
@@ -107,6 +124,7 @@ function Login() {
         </div>
 
       </div>
+
     </main>
   );
 }
